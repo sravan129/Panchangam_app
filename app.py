@@ -57,14 +57,27 @@ def boundary(moment, kind, width, direction):
 
 def fmt(moment): return moment.astimezone(IST).strftime("%I:%M %p").lstrip("0")
 
+def fmt_for_date(moment, selected):
+    local = moment.astimezone(IST)
+    label = fmt(local)
+    if local.date() < selected:
+        return f"{label} (prev day)"
+    if local.date() > selected:
+        return f"{label} (next day)"
+    return label
+
 def karana_name(i):
     if i == 0: return "కింస్తుఘ్న"
     if i >= 57: return ["శకుని","చతుష్పాద","నాగవ"][i - 57]
     return ["బవ","బాలవ","కౌలవ","తైతుల","గరజ","వణిజ","విష్టి"][(i - 1) % 7]
 
-def element(ref, kind, width, names=None):
+def element(ref, kind, width, selected, names=None):
     i = index(ref, kind, width)
-    return {"name": karana_name(i) if kind == "karana" else names[i], "start": fmt(boundary(ref, kind, width, -1)), "end": fmt(boundary(ref, kind, width, 1))}
+    return {
+        "name": karana_name(i) if kind == "karana" else names[i],
+        "start": fmt_for_date(boundary(ref, kind, width, -1), selected),
+        "end": fmt_for_date(boundary(ref, kind, width, 1), selected),
+    }
 
 def period(rise, setting, segment):
     unit = (setting - rise) / 8
@@ -85,10 +98,10 @@ def panchangam():
         return jsonify({
             "dateLabel": f"{selected.day} {MONTHS[selected.month]} {selected.year}, {WEEKDAYS[weekday]}",
             "location": name, "sunrise": fmt(rise), "sunset": fmt(setting),
-            "tithi": element(ref, "tithi", 12, TITHIS),
-            "nakshatra": element(ref, "nakshatra", 360/27, NAKSHATRAS),
-            "yoga": element(ref, "yoga", 360/27, YOGAS),
-            "karana": element(ref, "karana", 6),
+            "tithi": element(ref, "tithi", 12, selected, TITHIS),
+            "nakshatra": element(ref, "nakshatra", 360/27, selected, NAKSHATRAS),
+            "yoga": element(ref, "yoga", 360/27, selected, YOGAS),
+            "karana": element(ref, "karana", 6, selected),
             "rahuKalam": period(rise, setting, [1,6,4,5,3,2,7][weekday]),
             "yamagandam": period(rise, setting, [3,2,1,0,6,5,4][weekday]),
             "gulika": period(rise, setting, [5,4,3,2,1,0,6][weekday]),
